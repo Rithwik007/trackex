@@ -12,6 +12,10 @@ const API_KEYS = [
 // Create a Groq client per key — maxRetries: 0 so 429 is thrown instantly for our rotation
 const groqClients = API_KEYS.map(key => new Groq({ apiKey: key, maxRetries: 0 }));
 
+if (groqClients.length === 0) {
+  console.warn('⚠️ Warning: No GROQ_API_KEY set in environment variables.');
+}
+
 // Round-robin counter — rotates which key we try first each query
 let rrIndex = 0;
 

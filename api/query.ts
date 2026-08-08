@@ -5,6 +5,7 @@ import { Expense } from './lib/models/Expense';
 import { User } from './lib/models/User';
 import { authMiddleware } from './lib/auth';
 import { parseNLQuery, answerQuestionWithTransactions, AllKeysExhaustedError } from './lib/groq';
+import { checkRateLimit } from './lib/rateLimit';
 import { ALL_CATEGORIES } from '../src/lib/categories';
 
 const VALID_CATEGORIES = ALL_CATEGORIES.map(c => c.id);
@@ -22,6 +23,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const auth = await authMiddleware(req, res);
   if (!auth) return;
+
+  // Rate Limiting: Max 20 queries/min per user
+  const rate = checkRateLimit(auth.user._id.toString());
+  if (!rate.allowed) {
+    return res.status(429).json({
+      answer: "⏳ Rate limit exceeded. You can send up to 20 questions per minute. Please wait a moment before trying again.",
+      understood: false,
+    });
+  }
 
   const { question, chat_history } = req.body as {
     question?: string;
