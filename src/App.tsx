@@ -8,42 +8,40 @@ import History from './pages/History';
 import Insights from './pages/Insights';
 import Profile from './pages/Profile';
 
-function AppRoutes() {
+function MainContent() {
   const location = useLocation();
   const authed = isAuthenticated();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
-        {!authed ? (
-          <>
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="*" element={<Navigate to="/onboarding" replace />} />
-          </>
-        ) : (
-          <>
-            <Route path="/"            element={<Dashboard />} />
-            <Route path="/history"     element={<History />} />
-            <Route path="/insights"    element={<Insights />} />
-            <Route path="/profile"     element={<Profile />} />
-            <Route path="/settings"    element={<Navigate to="/profile" replace />} />
-            <Route path="*"            element={<Navigate to="/" replace />} />
-          </>
-        )}
-      </Routes>
-    </AnimatePresence>
+    <div className="page-shell">
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          {!authed ? (
+            <>
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="*" element={<Navigate to="/onboarding" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/"            element={<Dashboard />} />
+              <Route path="/history"     element={<History />} />
+              <Route path="/insights"    element={<Insights />} />
+              <Route path="/profile"     element={<Profile />} />
+              <Route path="/settings"    element={<Navigate to="/profile" replace />} />
+              <Route path="*"            element={<Navigate to="/" replace />} />
+            </>
+          )}
+        </Routes>
+      </AnimatePresence>
+      {authed && location.pathname !== '/onboarding' && <BottomNav />}
+    </div>
   );
 }
 
 export default function App() {
-  const authed = isAuthenticated();
-
   return (
     <BrowserRouter>
-      <div className="page-shell">
-        <AppRoutes />
-        {authed && <BottomNav />}
-      </div>
+      <MainContent />
     </BrowserRouter>
   );
 }

@@ -1,6 +1,7 @@
 .bottom-nav {
   position: relative;
   z-index: 100;
+  flex-shrink: 0;
   background: rgba(22, 22, 28, 0.85);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
