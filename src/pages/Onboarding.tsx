@@ -1,11 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setAuth } from '../lib/auth';
+import { apiPost } from '../lib/api';
 import { tapScale } from '../lib/animations';
 import './Onboarding.css';
 
 type Step = 'identity' | 'balance';
+
+interface UserResponse {
+  user_id?: string;
+  token?: string;
+  username?: string;
+  name?: string;
+  starting_balance?: number;
+  is_new?: boolean;
+  exists?: boolean;
+  error?: string;
+}
 
 export default function Onboarding() {
   const navigate  = useNavigate();
@@ -15,16 +27,53 @@ export default function Onboarding() {
   const [balance, setBalance]   = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
+  const [isExisting, setIsExisting] = useState(false);
 
-  const handleIdentity = () => {
+  useEffect(() => {
+    const lastUser = localStorage.getItem('trackex_last_username');
+    if (lastUser) {
+      setUsername(lastUser);
+    }
+  }, []);
+
+  const handleIdentity = async () => {
     const u = username.trim().toLowerCase();
     if (!/^[a-z0-9_]{2,20}$/.test(u)) {
       setError('2–20 chars, letters/numbers/underscore only');
       return;
     }
-    if (name.trim().length < 1) { setError('Name required'); return; }
+    setLoading(true);
     setError('');
-    setStep('balance');
+
+    try {
+      // Check if user exists in database
+      const res = await apiPost<UserResponse>('/api/users', { username: u });
+
+      if (res.user_id && res.token) {
+        // Existing user → Log in directly
+        setAuth({
+          user_id: res.user_id,
+          token: res.token,
+          username: res.username!,
+          name: res.name!,
+        });
+        localStorage.setItem('trackex_last_username', res.username!);
+        navigate('/', { replace: true });
+        return;
+      }
+
+      // New user → Proceed to step 2 (Name & Starting Balance)
+      setIsExisting(false);
+      if (!name) {
+        // Default display name to capitalized username
+        setName(u.charAt(0).toUpperCase() + u.slice(1));
+      }
+      setStep('balance');
+    } catch (e: any) {
+      setError(e.message ?? 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFinish = async () => {
@@ -33,26 +82,32 @@ export default function Onboarding() {
       setError('Enter a valid starting balance');
       return;
     }
-    setLoading(true); setError('');
+    if (!name.trim()) {
+      setError('Display name is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: username.trim().toLowerCase(),
-          name: name.trim(),
-          starting_balance: balance ? amt : 0,
-        }),
+      const res = await apiPost<UserResponse>('/api/users', {
+        username: username.trim().toLowerCase(),
+        name: name.trim(),
+        starting_balance: balance ? amt : 0,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setAuth({
-        user_id: data.user_id,
-        token:   data.token,
-        username: data.username,
-        name:    data.name,
-      });
-      navigate('/', { replace: true });
+
+      if (res.user_id && res.token) {
+        setAuth({
+          user_id: res.user_id,
+          token:   res.token,
+          username: res.username!,
+          name:    res.name!,
+        });
+        localStorage.setItem('trackex_last_username', res.username!);
+        navigate('/', { replace: true });
+      } else {
+        throw new Error('Registration failed');
+      }
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong');
     } finally {
@@ -91,8 +146,8 @@ export default function Onboarding() {
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
-              <h1 className="onboarding__step-title">Who are you?</h1>
-              <p className="onboarding__step-sub">Pick a username to identify yourself. No password needed.</p>
+              <h1 className="onboarding__step-title">Welcome</h1>
+              <p className="onboarding__step-sub">Enter your username to log in or create a new account.</p>
 
               <div className="onboarding__field">
                 <label className="onboarding__label" htmlFor="ob-username">Username</label>
@@ -108,26 +163,17 @@ export default function Onboarding() {
                 />
               </div>
 
-              <div className="onboarding__field">
-                <label className="onboarding__label" htmlFor="ob-name">Display Name</label>
-                <input
-                  id="ob-name"
-                  className="onboarding__input"
-                  placeholder="e.g. Rithwik"
-                  value={name}
-                  onChange={e => { setName(e.target.value); setError(''); }}
-                />
-              </div>
-
               {error && <p className="onboarding__error">{error}</p>}
 
               <motion.button
                 id="ob-next-btn"
-                className="onboarding__btn"
+                className={`onboarding__btn ${loading ? 'loading' : ''}`}
                 onClick={handleIdentity}
                 whileTap={tapScale}
+                disabled={loading}
               >
-                Continue →
+                {loading ? <span className="sheet-spinner" /> : null}
+                {loading ? 'Checking...' : 'Continue →'}
               </motion.button>
             </motion.div>
 
@@ -140,22 +186,35 @@ export default function Onboarding() {
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
-              <h2 className="onboarding__step-title">Starting Balance</h2>
-              <p className="onboarding__step-sub">How much money are you starting with? You can edit this later.</p>
+              <h2 className="onboarding__step-title">New Account Setup</h2>
+              <p className="onboarding__step-sub">Set your display name and initial starting balance for <strong>@{username}</strong>.</p>
 
-              <div className="onboarding__amount-wrap">
-                <span className="onboarding__currency mono">₹</span>
+              <div className="onboarding__field">
+                <label className="onboarding__label" htmlFor="ob-name">Display Name</label>
                 <input
-                  id="ob-balance"
-                  className="onboarding__amount-input mono"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  min="0"
-                  value={balance}
-                  onChange={e => { setBalance(e.target.value); setError(''); }}
-                  autoFocus
+                  id="ob-name"
+                  className="onboarding__input"
+                  placeholder="e.g. Rithwik"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setError(''); }}
                 />
+              </div>
+
+              <div className="onboarding__field" style={{ marginTop: 12 }}>
+                <label className="onboarding__label" htmlFor="ob-balance">Starting Balance</label>
+                <div className="onboarding__amount-wrap">
+                  <span className="onboarding__currency mono">₹</span>
+                  <input
+                    id="ob-balance"
+                    className="onboarding__amount-input mono"
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    min="0"
+                    value={balance}
+                    onChange={e => { setBalance(e.target.value); setError(''); }}
+                  />
+                </div>
               </div>
 
               {error && <p className="onboarding__error">{error}</p>}
@@ -168,7 +227,7 @@ export default function Onboarding() {
                 disabled={loading}
               >
                 {loading ? <span className="sheet-spinner" /> : null}
-                {loading ? 'Setting up…' : "Let's Go 🚀"}
+                {loading ? 'Creating account…' : 'Create Account 🚀'}
               </motion.button>
 
               <button

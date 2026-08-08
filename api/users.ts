@@ -38,9 +38,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // New user → register
+  // New user check vs registration
   if (!name || typeof name !== 'string' || name.trim().length < 1) {
-    return res.status(400).json({ error: 'name required for new user' });
+    return res.status(200).json({ exists: false });
   }
 
   const token = randomUUID();
