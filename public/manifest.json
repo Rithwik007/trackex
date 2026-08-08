@@ -1,0 +1,16 @@
+{
+  "short_name": "TrackEx",
+  "name": "TrackEx — Log it, see it, own it",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0B0B0F",
+  "theme_color": "#00D9A3",
+  "display": "standalone",
+  "orientation": "portrait"
+}

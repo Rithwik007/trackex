@@ -1,0 +1,125 @@
+.balance-card {
+  padding: 24px;
+  margin: 0;
+  position: relative;
+  overflow: visible;          /* was 'hidden' — clipped the footer row */
+  background: linear-gradient(135deg, #16161C 0%, #1a1a24 100%);
+  border: 1px solid rgba(0, 217, 163, 0.2);
+  border-radius: var(--radius-lg); /* re-declare since overflow:visible removes implicit clip */
+}
+
+.balance-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: var(--accent-glow);
+  border-radius: 50%;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.balance-card--negative {
+  border-color: rgba(255, 92, 92, 0.3);
+}
+
+.balance-card--negative::before {
+  background: var(--danger-glow);
+}
+
+.balance-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.balance-card__greeting {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.balance-card__label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.balance-card__amount {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.balance-card__currency {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.2;
+  padding-bottom: 4px;
+}
+
+.balance-card__value {
+  font-size: clamp(28px, 8vw, 48px); /* shrinks on narrow screens so footer stays visible */
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.balance-card__value.negative {
+  color: var(--danger);
+}
+
+.balance-card__badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: var(--danger-glow);
+  color: var(--danger);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  align-self: center;
+}
+
+.balance-card__footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-border);
+}
+
+.balance-card__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-card__stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.balance-card__stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.balance-card__divider {
+  width: 1px;
+  height: 32px;
+  background: var(--card-border);
+}

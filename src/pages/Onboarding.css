@@ -1,0 +1,226 @@
+.onboarding {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.onboarding__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.onboarding__orb--1 {
+  top: -10%;
+  left: -10%;
+  width: 300px;
+  height: 300px;
+  background: var(--accent-glow);
+  opacity: 0.8;
+}
+
+.onboarding__orb--2 {
+  bottom: -10%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(77, 166, 255, 0.15);
+  opacity: 0.8;
+}
+
+.onboarding__card {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  background: rgba(22, 22, 28, 0.8);
+}
+
+.onboarding__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.onboarding__logo-icon {
+  font-size: 28px;
+}
+
+.onboarding__logo-text {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.onboarding__tagline {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.onboarding__dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.onboarding__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+}
+
+.onboarding__dot.active {
+  background: var(--accent);
+  transform: scale(1.2);
+}
+
+.onboarding__dot.done {
+  background: var(--accent-glow);
+}
+
+.onboarding__step {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding__step-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.onboarding__step-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.onboarding__field {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.onboarding__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.onboarding__input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 15px;
+  color: var(--text);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.onboarding__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.onboarding__amount-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.onboarding__amount-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.onboarding__currency {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 8px;
+}
+
+.onboarding__amount-input {
+  width: 100%;
+  font-size: 36px;
+  font-weight: 600;
+  text-align: left;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.onboarding__error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+  padding: 10px;
+  background: var(--danger-glow);
+  border-radius: var(--radius-sm);
+}
+
+.onboarding__btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent);
+  color: #0B0B0F;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.onboarding__btn:disabled {
+  opacity: 0.7;
+}
+
+.onboarding__back {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 16px;
+  align-self: center;
+}
+
+.onboarding__back:hover {
+  color: var(--text);
+}

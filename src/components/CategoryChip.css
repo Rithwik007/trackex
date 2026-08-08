@@ -1,0 +1,26 @@
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 99px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.category-chip--md {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.category-chip--sm {
+  padding: 2px 7px;
+  font-size: 11px;
+}
+
+.category-chip__icon {
+  font-size: 0.9em;
+}
+
+.category-chip__label {
+  letter-spacing: 0.01em;
+}

@@ -1,0 +1,76 @@
+.spend-chart {
+  padding: 20px;
+}
+
+.spend-chart__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 16px;
+}
+
+.spend-chart__body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.spend-chart__donut-wrap {
+  flex-shrink: 0;
+}
+
+.spend-chart__legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.spend-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spend-chart__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.spend-chart__legend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.spend-chart__legend-cat {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.spend-chart__bar-wrap {
+  height: 4px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.spend-chart__bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+
+.spend-chart__legend-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
