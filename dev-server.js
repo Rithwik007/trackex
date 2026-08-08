@@ -15,20 +15,19 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // CORS middleware — locked to allowed domains
+  // CORS middleware — allow Vercel domains (*.vercel.app), FRONTEND_URL, and localhost
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    const allowedOrigins = [
-      'https://trackex.vercel.app',
-      process.env.FRONTEND_URL,
-      'http://localhost:5173',
-      'http://localhost:3000',
-    ].filter(Boolean);
+    const isAllowed = !origin || 
+      origin === 'http://localhost:5173' || 
+      origin === 'http://localhost:3000' || 
+      /\.vercel\.app$/.test(origin) ||
+      (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL);
 
-    if (origin && allowedOrigins.includes(origin)) {
+    if (isAllowed && origin) {
       res.header('Access-Control-Allow-Origin', origin);
     } else if (!origin) {
-      res.header('Access-Control-Allow-Origin', 'https://trackex.vercel.app');
+      res.header('Access-Control-Allow-Origin', '*');
     }
 
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-user-id, x-token');

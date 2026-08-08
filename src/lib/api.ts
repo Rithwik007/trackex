@@ -1,6 +1,7 @@
 import { getAuth } from './auth';
 
-const BASE = import.meta.env.VITE_API_BASE_URL || '';
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const BASE = RAW_BASE.replace(/\/+$/, '');
 
 function headers(auth?: { user_id: string; token: string }) {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
