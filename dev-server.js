@@ -11,7 +11,7 @@ async function startServer() {
   const { default: expensesIndexHandler } = await import('./api/expenses/index.ts');
   const { default: expensesIdHandler } = await import('./api/expenses/[id].ts');
   const { default: queryHandler } = await import('./api/query.ts');
-  const { default: adminUsersHandler } = await import('./api/admin/users/index.ts');
+  const { default: adminUsersHandler } = await import('./api/admin/users.ts');
   const { default: adminUserDeleteHandler } = await import('./api/admin/users/[id].ts');
 
   const app = express();
