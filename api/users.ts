@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectDB } from './lib/db';
-import { User } from './lib/models/User';
+import { connectDB } from './lib/db.js';
+import { User } from './lib/models/User.js';
 import { randomUUID } from 'crypto';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

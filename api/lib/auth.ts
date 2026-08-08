@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectDB } from './db';
-import { User } from './models/User';
+import { connectDB } from './db.js';
+import { User } from './models/User.js';
 
 export interface AuthUser {
   user_id: string;

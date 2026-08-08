@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import mongoose from 'mongoose';
-import { connectDB } from './lib/db';
-import { Expense } from './lib/models/Expense';
-import { User } from './lib/models/User';
-import { authMiddleware } from './lib/auth';
-import { parseNLQuery, answerQuestionWithTransactions, AllKeysExhaustedError } from './lib/groq';
-import { checkRateLimit } from './lib/rateLimit';
-import { ALL_CATEGORIES } from '../src/lib/categories';
+import { connectDB } from './lib/db.js';
+import { Expense } from './lib/models/Expense.js';
+import { User } from './lib/models/User.js';
+import { authMiddleware } from './lib/auth.js';
+import { parseNLQuery, answerQuestionWithTransactions, AllKeysExhaustedError } from './lib/groq.js';
+import { checkRateLimit } from './lib/rateLimit.js';
+import { ALL_CATEGORIES } from '../src/lib/categories.js';
 
 const VALID_CATEGORIES = ALL_CATEGORIES.map(c => c.id);
 

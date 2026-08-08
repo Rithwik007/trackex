@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectDB } from '../../lib/db';
-import { User } from '../../lib/models/User';
-import { authMiddleware } from '../../lib/auth';
+import { connectDB } from '../../lib/db.js';
+import { User } from '../../lib/models/User.js';
+import { authMiddleware } from '../../lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH') {
