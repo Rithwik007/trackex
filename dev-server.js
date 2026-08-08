@@ -15,9 +15,22 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // CORS middleware for production cross-origin requests
+  // CORS middleware — locked to allowed domains
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://trackex.vercel.app',
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ].filter(Boolean);
+
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      res.header('Access-Control-Allow-Origin', 'https://trackex.vercel.app');
+    }
+
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-user-id, x-token');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') {
@@ -38,7 +51,7 @@ async function startServer() {
   // Users API
   app.post('/api/users', usersHandler);
   app.patch('/api/users/:id/balance', (req, res, next) => {
-    Object.assign(req.query, req.params);
+    for (const k in req.params) { req.query[k] = req.params[k]; }
     balanceHandler(req, res).catch(next);
   });
 
@@ -47,11 +60,11 @@ async function startServer() {
   app.post('/api/expenses', expensesIndexHandler);
 
   app.patch('/api/expenses/:id', (req, res, next) => {
-    Object.assign(req.query, req.params);
+    for (const k in req.params) { req.query[k] = req.params[k]; }
     expensesIdHandler(req, res).catch(next);
   });
   app.delete('/api/expenses/:id', (req, res, next) => {
-    Object.assign(req.query, req.params);
+    for (const k in req.params) { req.query[k] = req.params[k]; }
     expensesIdHandler(req, res).catch(next);
   });
 

@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await authMiddleware(req, res);
   if (!auth) return;
 
-  const { id } = req.query as { id: string };
+  const id = (req.query.id || (req as any).params?.id) as string;
 
   // Only allow editing own balance
   if (id !== auth.user_id) {

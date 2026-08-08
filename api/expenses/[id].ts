@@ -11,9 +11,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await authMiddleware(req, res);
   if (!auth) return;
 
-  const { id } = req.query as { id: string };
+  const id = (req.query.id || (req as any).params?.id) as string;
 
-  if (!mongoose.isValidObjectId(id)) {
+  if (!id || !mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: 'Invalid transaction id' });
   }
 
