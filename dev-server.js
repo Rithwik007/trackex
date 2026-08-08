@@ -73,7 +73,9 @@ async function startServer() {
   app.post('/api/query', queryHandler);
 
   // Admin API
-  app.get('/api/admin/users', adminUsersHandler);
+  app.get('/api/admin/users', (req, res, next) => {
+    adminUsersHandler(req, res).catch(next);
+  });
   app.delete('/api/admin/users/:id', (req, res, next) => {
     for (const k in req.params) { req.query[k] = req.params[k]; }
     adminUserDeleteHandler(req, res).catch(next);
