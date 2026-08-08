@@ -31,17 +31,26 @@ export default function Admin() {
   const [confirmInput, setConfirmInput] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  const fetchAdminData = async () => {
-    setLoading(true);
+  const [retrying, setRetrying] = useState(false);
+
+  const fetchAdminData = async (isAutoRetry = false) => {
+    if (!isAutoRetry) setLoading(true);
+    else setRetrying(true);
     setError('');
     try {
       const data = await apiGet<{ users: AdminUserItem[] }>('/api/admin/users');
       setUsers(data.users);
+      setError('');
     } catch (err: any) {
-      setError(err.message || 'Access denied');
-      setTimeout(() => navigate('/'), 2000);
+      const msg = err.message || 'Failed to fetch admin metrics';
+      setError(msg);
+      // Auto retry once if backend is waking up
+      if (!isAutoRetry) {
+        setTimeout(() => fetchAdminData(true), 6000);
+      }
     } finally {
       setLoading(false);
+      setRetrying(false);
     }
   };
 
