@@ -11,6 +11,8 @@ async function startServer() {
   const { default: expensesIndexHandler } = await import('./api/expenses/index.ts');
   const { default: expensesIdHandler } = await import('./api/expenses/[id].ts');
   const { default: queryHandler } = await import('./api/query.ts');
+  const { default: adminUsersHandler } = await import('./api/admin/users/index.ts');
+  const { default: adminUserDeleteHandler } = await import('./api/admin/users/[id].ts');
 
   const app = express();
   app.use(express.json());
@@ -69,6 +71,13 @@ async function startServer() {
 
   // NL Query API
   app.post('/api/query', queryHandler);
+
+  // Admin API
+  app.get('/api/admin/users', adminUsersHandler);
+  app.delete('/api/admin/users/:id', (req, res, next) => {
+    for (const k in req.params) { req.query[k] = req.params[k]; }
+    adminUserDeleteHandler(req, res).catch(next);
+  });
 
   // Error Handler
   app.use((err, req, res, next) => {

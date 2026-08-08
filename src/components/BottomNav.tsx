@@ -2,7 +2,9 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './BottomNav.css';
 
-const TABS = [
+import { getAuth } from '../lib/auth';
+
+const BASE_TABS = [
   { path: '/',         label: 'Home',     icon: HomeIcon },
   { path: '/history',  label: 'History',  icon: HistoryIcon },
   { path: '/insights', label: 'Insights', icon: InsightsIcon },
@@ -11,11 +13,17 @@ const TABS = [
 
 export default function BottomNav() {
   const location = useLocation();
+  const auth = getAuth();
+  const isAdmin = auth?.username.toLowerCase() === 'rithwikex';
+
+  const tabs = isAdmin
+    ? [...BASE_TABS, { path: '/admin', label: 'Admin', icon: AdminIcon }]
+    : BASE_TABS;
 
   return (
     <nav className="bottom-nav" role="navigation" aria-label="Main navigation">
       <div className="bottom-nav__inner">
-        {TABS.map(({ path, label, icon: Icon }) => {
+        {tabs.map(({ path, label, icon: Icon }) => {
           const active = location.pathname === path;
           return (
             <NavLink
@@ -75,6 +83,14 @@ function ProfileIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function AdminIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
 }

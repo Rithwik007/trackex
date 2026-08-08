@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import History from './pages/History';
 import Insights from './pages/Insights';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 
 function MainContent() {
   const location = useLocation();
@@ -27,6 +28,7 @@ function MainContent() {
               <Route path="/history"     element={<History />} />
               <Route path="/insights"    element={<Insights />} />
               <Route path="/profile"     element={<Profile />} />
+              <Route path="/admin"       element={<Admin />} />
               <Route path="/settings"    element={<Navigate to="/profile" replace />} />
               <Route path="*"            element={<Navigate to="/" replace />} />
             </>

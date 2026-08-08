@@ -36,3 +36,18 @@ export async function authMiddleware(
     starting_balance: user.starting_balance,
   };
 }
+
+export async function adminMiddleware(
+  req: VercelRequest,
+  res: VercelResponse
+): Promise<AuthUser | null> {
+  const auth = await authMiddleware(req, res);
+  if (!auth) return null;
+
+  if (auth.username.toLowerCase() !== 'rithwikex') {
+    res.status(403).json({ error: 'Forbidden — Admin access required' });
+    return null;
+  }
+
+  return auth;
+}

@@ -5,7 +5,8 @@ import { Expense } from './lib/models/Expense.js';
 import { User } from './lib/models/User.js';
 import { authMiddleware } from './lib/auth.js';
 import { parseNLQuery, answerQuestionWithTransactions, AllKeysExhaustedError } from './lib/groq.js';
-import { checkRateLimit } from './lib/rateLimit.js';
+import { checkRateLimitDurable } from './lib/rateLimit.js';
+import { QueryLog } from './lib/models/QueryLog.js';
 import { ALL_CATEGORIES } from '../src/lib/categories.js';
 
 const VALID_CATEGORIES = ALL_CATEGORIES.map(c => c.id);
@@ -24,14 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const auth = await authMiddleware(req, res);
   if (!auth) return;
 
-  // Rate Limiting: Max 20 queries/min per user
-  const rate = checkRateLimit(auth.user._id.toString());
-  if (!rate.allowed) {
-    return res.status(429).json({
-      answer: "⏳ Rate limit exceeded. You can send up to 20 questions per minute. Please wait a moment before trying again.",
-      understood: false,
-    });
-  }
+  await connectDB();
 
   const { question, chat_history } = req.body as {
     question?: string;
@@ -39,6 +33,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
   if (!question || typeof question !== 'string' || question.trim().length < 2) {
     return res.status(400).json({ error: 'question required' });
+  }
+
+  // Durable Request Tracking: Log hit to /api/query
+  await QueryLog.create({
+    user_id: new mongoose.Types.ObjectId(auth.user_id),
+    username: auth.username,
+    question: question.trim(),
+    timestamp: new Date(),
+  }).catch(err => console.error('[QueryLog write error]:', err));
+
+  // Durable Rate Limiting: Max 20 queries per 60s per user read from QueryLog
+  const rate = await checkRateLimitDurable(auth.user_id);
+  if (!rate.allowed) {
+    return res.status(429).json({
+      answer: "⏳ Rate limit exceeded. You can send up to 20 questions per minute. Please wait a moment before trying again.",
+      understood: false,
+    });
   }
 
   let parsed;

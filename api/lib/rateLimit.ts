@@ -1,22 +1,19 @@
-// Simple in-memory sliding window rate limiter for serverless environment
-const windowMs = 60 * 1000; // 1 minute
-const maxRequests = 20;     // max 20 queries per minute per user
+import mongoose from 'mongoose';
+import { connectDB } from './db.js';
+import { QueryLog } from './models/QueryLog.js';
 
-const rateMap = new Map<string, { count: number; resetTime: number }>();
+const maxRequests = 20; // max 20 queries per 60s per user
 
-export function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const userRecord = rateMap.get(userId);
+export async function checkRateLimitDurable(userId: string): Promise<{ allowed: boolean; count: number }> {
+  await connectDB();
+  const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+  const count = await QueryLog.countDocuments({
+    user_id: new mongoose.Types.ObjectId(userId),
+    timestamp: { $gte: sixtySecondsAgo },
+  });
 
-  if (!userRecord || now > userRecord.resetTime) {
-    rateMap.set(userId, { count: 1, resetTime: now + windowMs });
-    return { allowed: true, remaining: maxRequests - 1 };
-  }
-
-  if (userRecord.count >= maxRequests) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  userRecord.count += 1;
-  return { allowed: true, remaining: maxRequests - userRecord.count };
+  return {
+    allowed: count < maxRequests,
+    count,
+  };
 }
