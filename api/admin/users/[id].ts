@@ -6,7 +6,11 @@ import { User } from '../../lib/models/User.js';
 import { Expense } from '../../lib/models/Expense.js';
 import { AdminAuditLog } from '../../lib/models/AdminAuditLog.js';
 
+import { setCorsHeaders } from '../../lib/cors.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (setCorsHeaders(req, res)) return;
+
   if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

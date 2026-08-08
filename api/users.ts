@@ -3,7 +3,11 @@ import { connectDB } from './lib/db.js';
 import { User } from './lib/models/User.js';
 import { randomUUID } from 'crypto';
 
+import { setCorsHeaders } from './lib/cors.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (setCorsHeaders(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

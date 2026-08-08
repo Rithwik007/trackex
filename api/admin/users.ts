@@ -7,7 +7,11 @@ import { Expense } from '../lib/models/Expense.js';
 import { QueryLog } from '../lib/models/QueryLog.js';
 import { calculateUserBalance } from '../lib/balanceHelper.js';
 
+import { setCorsHeaders } from '../lib/cors.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (setCorsHeaders(req, res)) return;
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
