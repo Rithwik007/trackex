@@ -1,6 +1,8 @@
 import { getAuth } from './auth';
 
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// Fallback to live Render backend URL when in production and VITE_API_BASE_URL is not set
+const DEFAULT_PROD_API = 'https://trackex-api.onrender.com';
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : DEFAULT_PROD_API);
 const BASE = RAW_BASE.replace(/\/+$/, '');
 
 function headers(auth?: { user_id: string; token: string }) {
@@ -10,22 +12,28 @@ function headers(auth?: { user_id: string; token: string }) {
   return h;
 }
 
+async function handleResponse<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Backend service is waking up (Render cold start) or API URL is unreachable. Please click Refresh in a few seconds.');
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? 'Request failed');
+  return data as T;
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Request failed');
-  return data as T;
+  return handleResponse<T>(res);
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: headers() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Request failed');
-  return data as T;
+  return handleResponse<T>(res);
 }
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
@@ -34,14 +42,10 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     headers: headers(),
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Request failed');
-  return data as T;
+  return handleResponse<T>(res);
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: headers() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Request failed');
-  return data as T;
+  return handleResponse<T>(res);
 }
