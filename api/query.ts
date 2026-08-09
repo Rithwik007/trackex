@@ -7,6 +7,7 @@ import { authMiddleware } from './lib/auth.js';
 import { parseNLQuery, answerQuestionWithTransactions, AllKeysExhaustedError } from './lib/groq.js';
 import { checkRateLimitDurable } from './lib/rateLimit.js';
 import { QueryLog } from './lib/models/QueryLog.js';
+import { ChatMessage } from './lib/models/ChatMessage.js';
 import { ALL_CATEGORIES } from '../src/lib/categories.js';
 
 const VALID_CATEGORIES = ALL_CATEGORIES.map(c => c.id);
@@ -36,12 +37,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Durable Request Tracking: Log hit to /api/query
+  const userIdObj = new mongoose.Types.ObjectId(auth.user_id);
   await QueryLog.create({
-    user_id: new mongoose.Types.ObjectId(auth.user_id),
+    user_id: userIdObj,
     username: auth.username,
     question: question.trim(),
     timestamp: new Date(),
   }).catch(err => console.error('[QueryLog write error]:', err));
+
+  // Persist user question in MongoDB ChatMessage collection
+  await ChatMessage.create({
+    user_id: userIdObj,
+    role: 'user',
+    text: question.trim(),
+    timestamp: new Date(),
+  }).catch(err => console.error('[ChatMessage user write error]:', err));
 
   // Durable Rate Limiting: Max 20 queries per 60s per user read from QueryLog
   const rate = await checkRateLimitDurable(auth.user_id);
@@ -105,7 +115,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   await connectDB();
-  const userIdObj = new mongoose.Types.ObjectId(auth.user_id);
 
   // Helper to query transactions based on filters
   const fetchTx = async (
@@ -214,6 +223,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     throw err;
   }
+
+  // Persist assistant response in MongoDB ChatMessage collection
+  await ChatMessage.create({
+    user_id: userIdObj,
+    role: 'assistant',
+    text: answer,
+    timestamp: new Date(),
+  }).catch(err => console.error('[ChatMessage bot write error]:', err));
 
   return res.status(200).json({
     answer,

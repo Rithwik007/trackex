@@ -14,6 +14,7 @@ async function startServer() {
   const { default: adminUsersHandler } = await import('./api/admin/users.ts');
   const { default: adminUserDeleteHandler } = await import('./api/admin/users/[id].ts');
   const { default: aggregateHandler } = await import('./api/aggregate.ts');
+  const { default: chatHandler } = await import('./api/chat.ts');
 
   const app = express();
   app.use(express.json());
@@ -72,6 +73,14 @@ async function startServer() {
 
   // NL Query API
   app.post('/api/query', queryHandler);
+
+  // Chat API
+  app.get('/api/chat', (req, res, next) => {
+    chatHandler(req, res).catch(next);
+  });
+  app.delete('/api/chat', (req, res, next) => {
+    chatHandler(req, res).catch(next);
+  });
 
   // Monthly Aggregate API
   app.get('/api/aggregate', aggregateHandler);

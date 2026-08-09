@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { apiPost } from '../lib/api';
+import { apiGet, apiPost, apiDelete } from '../lib/api';
 import { pageTransition, tapScale } from '../lib/animations';
 import ChatBubble, { TypingIndicator } from '../components/ChatBubble';
 import './Insights.css';
@@ -25,19 +25,10 @@ const WELCOME_MESSAGE: Message = {
 };
 
 export default function Insights() {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem('trackex_chat_history');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // Fallback
-      }
-    }
-    return [WELCOME_MESSAGE];
-  });
-  const [input, setInput]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fetchingHistory, setFetchingHistory] = useState(true);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,22 +37,38 @@ export default function Insights() {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Fetch chat history from MongoDB on mount
   useEffect(() => {
-    localStorage.setItem('trackex_chat_history', JSON.stringify(messages));
+    apiGet<{ messages: Message[] }>('/api/chat')
+      .then(res => {
+        if (res.messages && res.messages.length > 0) {
+          setMessages([WELCOME_MESSAGE, ...res.messages]);
+        } else {
+          setMessages([WELCOME_MESSAGE]);
+        }
+      })
+      .catch(err => console.error('[Chat History Fetch Error]', err))
+      .finally(() => setFetchingHistory(false));
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !fetchingHistory) {
       inputRef.current?.focus();
     }
-  }, [loading]);
+  }, [loading, fetchingHistory]);
 
-  const handleClear = () => {
-    setMessages([WELCOME_MESSAGE]);
-    localStorage.removeItem('trackex_chat_history');
-    setConfirmingClear(false);
-    setTimeout(() => inputRef.current?.focus(), 50);
+  const handleClear = async () => {
+    try {
+      await apiDelete('/api/chat');
+      setMessages([WELCOME_MESSAGE]);
+      setConfirmingClear(false);
+    } catch {
+      alert('Failed to clear chat history from server.');
+    }
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -75,7 +82,6 @@ export default function Insights() {
     setMessages(updatedMessages);
     setLoading(true);
 
-    // Prepare chat history payload for backend (exclude the welcome message to be clean, map role/content)
     const chatHistoryPayload = updatedMessages
       .filter(m => m.id !== 'welcome')
       .map(m => ({
@@ -118,35 +124,30 @@ export default function Insights() {
       <div className="insights__header">
         <div className="insights__header-text">
           <h1 className="insights__title">Insights Chat</h1>
-          <p className="insights__subtitle">Powered by Groq LLM</p>
+          <span className="insights__subtitle">Powered by AI • Cloud Synced</span>
         </div>
+
         {messages.length > 1 && (
           <div className="insights__clear-btn-wrap">
             {confirmingClear ? (
               <>
+                <button className="insights__clear-confirm-btn" onClick={handleClear}>
+                  Confirm Clear
+                </button>
                 <button
                   className="insights__clear-cancel-btn"
                   onClick={() => setConfirmingClear(false)}
                 >
                   Cancel
                 </button>
-                <motion.button
-                  className="insights__clear-confirm-btn"
-                  onClick={handleClear}
-                  whileTap={tapScale}
-                >
-                  Confirm Clear
-                </motion.button>
               </>
             ) : (
-              <motion.button
+              <button
                 className="insights__clear-btn"
                 onClick={() => setConfirmingClear(true)}
-                whileTap={tapScale}
-                aria-label="Clear chat"
               >
-                Clear Chat
-              </motion.button>
+                Clear Thread
+              </button>
             )}
           </div>
         )}
@@ -154,43 +155,43 @@ export default function Insights() {
 
       <div className="insights__thread">
         <div className="insights__thread-inner">
-          <AnimatePresence initial={false}>
-            {messages.map(m => (
-              <ChatBubble key={m.id} role={m.role} text={m.text} />
-            ))}
-            {loading && <TypingIndicator key="typing" />}
-          </AnimatePresence>
+          {fetchingHistory ? (
+            <div className="insights__loading-history card" style={{ padding: 16, textAlign: 'center' }}>
+              <span className="text-muted" style={{ fontSize: 13 }}>Syncing chat history from cloud...</span>
+            </div>
+          ) : (
+            messages.map(m => <ChatBubble key={m.id} role={m.role} text={m.text} />)
+          )}
+          {loading && <TypingIndicator />}
           <div ref={threadEndRef} />
         </div>
       </div>
 
-      <form className="insights__input-area" onSubmit={handleSend}>
-        <div className="insights__input-wrap">
+      <div className="insights__input-area">
+        <form className="insights__input-wrap" onSubmit={handleSend}>
           <input
             ref={inputRef}
-            id="insights-input"
+            type="text"
             className="insights__input"
-            placeholder="Ask a question..."
+            placeholder="Ask anything about your spending..."
             value={input}
             onChange={e => setInput(e.target.value)}
-            disabled={loading}
-            autoComplete="off"
+            disabled={loading || fetchingHistory}
           />
           <motion.button
-            id="insights-send-btn"
-            className="insights__send-btn"
             type="submit"
-            disabled={!input.trim() || loading}
+            className="insights__send-btn"
+            disabled={!input.trim() || loading || fetchingHistory}
             whileTap={tapScale}
-            aria-label="Send query"
+            aria-label="Send message"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           </motion.button>
-        </div>
-      </form>
+        </form>
+      </div>
     </motion.div>
   );
 }
