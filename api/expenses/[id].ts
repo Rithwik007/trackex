@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (amount !== undefined && (typeof amount !== 'number' || amount <= 0)) {
       return res.status(400).json({ error: 'amount must be > 0' });
     }
-    if (category !== undefined && !VALID_CATEGORIES.includes(category)) {
+    if (category !== undefined && !VALID_CATEGORIES.includes(category as any)) {
       return res.status(400).json({ error: 'invalid category' });
     }
 

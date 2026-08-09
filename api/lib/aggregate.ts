@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Expense } from './models/Expense';
+import { Expense } from './models/Expense.js';
 
 export interface AggregationFilter {
   user_id: string;
@@ -10,7 +10,7 @@ export interface AggregationFilter {
 }
 
 export async function aggregateTransactions(filter: AggregationFilter) {
-  const match: Record<string, unknown> = {
+  const match: any = {
     user_id: new mongoose.Types.ObjectId(filter.user_id),
   };
 

@@ -35,9 +35,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await Promise.all([
           calculateUserBalance(uId, u.starting_balance ?? 0),
           Expense.countDocuments({ user_id: uIdObj }),
-          QueryLog.countDocuments({ user_id: uIdObj, timestamp: { $gte: startOfDay } }),
-          QueryLog.countDocuments({ user_id: uIdObj }),
-          QueryLog.findOne({ user_id: uIdObj }).sort({ timestamp: -1 }).lean(),
+          QueryLog.countDocuments({ user_id: uIdObj, timestamp: { $gte: startOfDay } } as any),
+          QueryLog.countDocuments({ user_id: uIdObj } as any),
+          QueryLog.findOne({ user_id: uIdObj } as any).sort({ timestamp: -1 }).lean(),
           Expense.findOne({ user_id: uIdObj }).sort({ date: -1 }).lean(),
         ]);
 
