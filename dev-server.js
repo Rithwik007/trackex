@@ -13,6 +13,7 @@ async function startServer() {
   const { default: queryHandler } = await import('./api/query.ts');
   const { default: adminUsersHandler } = await import('./api/admin/users.ts');
   const { default: adminUserDeleteHandler } = await import('./api/admin/users/[id].ts');
+  const { default: aggregateHandler } = await import('./api/aggregate.ts');
 
   const app = express();
   app.use(express.json());
@@ -71,6 +72,9 @@ async function startServer() {
 
   // NL Query API
   app.post('/api/query', queryHandler);
+
+  // Monthly Aggregate API
+  app.get('/api/aggregate', aggregateHandler);
 
   // Admin API
   app.get('/api/admin/users', (req, res, next) => {

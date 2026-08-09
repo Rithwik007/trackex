@@ -3,65 +3,66 @@ import { motion } from 'framer-motion';
 import { getAuth, clearAuth } from '../lib/auth';
 import { apiGet } from '../lib/api';
 import { pageTransition, tapScale, listContainer, listItem } from '../lib/animations';
-import { CATEGORIES } from '../lib/categories';
+import MonthSelector from '../components/MonthSelector';
 import './Profile.css';
 
-interface MonthlyAnalytics {
+export interface CategoryBreakdownItem {
+  category: string;
+  label: string;
+  icon: string;
+  color: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+export interface AggregateData {
   year: number;
   month: number;
   label: string;
   start_balance: number;
   income: number;
-  expense: number;
-  net: number;
+  spent: number;
   end_balance: number;
-}
-
-interface StatsData {
-  balance: number;
-  total_spent: number;
-  total_income: number;
-  starting_balance: number;
-  monthly_analytics: MonthlyAnalytics[];
-  expenses: { category: string; amount: number; note: string; date: string; type?: 'expense' | 'income' }[];
+  current_balance: number;
+  category_breakdown: CategoryBreakdownItem[];
+  transaction_count: number;
 }
 
 export default function Profile() {
   const auth = getAuth()!;
-  const [stats, setStats]   = useState<StatsData | null>(null);
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
+  const [stats, setStats] = useState<AggregateData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiGet<StatsData>('/api/expenses?limit=200')
+  const fetchMonthStats = (year: number, month: number) => {
+    setLoading(true);
+    apiGet<AggregateData>(`/api/aggregate?year=${year}&month=${month}`)
       .then(res => setStats(res))
-      .catch(() => {})
+      .catch(err => console.error('[Profile Aggregate Error]', err))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchMonthStats(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
+
+  const handleMonthChange = (y: number, m: number) => {
+    setSelectedYear(y);
+    setSelectedMonth(m);
+  };
 
   const handleLogout = () => {
     clearAuth();
     window.location.href = '/onboarding';
   };
 
-  // Per-category spending breakdown (expenses only)
-  const categoryTotals = CATEGORIES
-    .map(c => ({
-      cat: c,
-      total: stats?.expenses
-        .filter(e => e.category === c.id && (e.type === 'expense' || !e.type))
-        .reduce((s, e) => s + e.amount, 0) ?? 0,
-      count: stats?.expenses
-        .filter(e => e.category === c.id && (e.type === 'expense' || !e.type))
-        .length ?? 0,
-    }))
-    .filter(c => c.total > 0)
-    .sort((a, b) => b.total - a.total);
-
-  const totalTx = stats?.expenses.length ?? 0;
-
   return (
     <motion.div
-      className="profile"
+      className="profile page-shell__content"
       variants={pageTransition}
       initial="initial"
       animate="animate"
@@ -83,6 +84,13 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* ── Reusable Month Selector ── */}
+      <MonthSelector
+        year={selectedYear}
+        month={selectedMonth}
+        onChange={handleMonthChange}
+      />
+
       {/* ── 3-Stat Row ── */}
       {loading ? (
         <div className="profile__stats-row">
@@ -98,95 +106,80 @@ export default function Profile() {
           animate="show"
         >
           <motion.div className="profile__stat-card card" variants={listItem}>
-            <span className="profile__stat-value mono" style={{ color: 'var(--accent)' }}>
-              +₹{(stats?.total_income ?? 0).toFixed(0)}
+            <span className="profile__stat-icon">💰</span>
+            <span className="profile__stat-label">Wallet Balance</span>
+            <span className="profile__stat-val mono">
+              ₹{stats?.current_balance.toFixed(2) ?? '0.00'}
             </span>
-            <span className="profile__stat-label">Income</span>
           </motion.div>
 
           <motion.div className="profile__stat-card card" variants={listItem}>
-            <span className="profile__stat-value mono" style={{ color: 'var(--danger)' }}>
-              −₹{(stats?.total_spent ?? 0).toFixed(0)}
+            <span className="profile__stat-icon">💸</span>
+            <span className="profile__stat-label">Month Spent</span>
+            <span className="profile__stat-val mono spent">
+              ₹{stats?.spent.toFixed(2) ?? '0.00'}
             </span>
-            <span className="profile__stat-label">Spent</span>
           </motion.div>
 
           <motion.div className="profile__stat-card card" variants={listItem}>
-            <span className="profile__stat-value mono">{totalTx}</span>
-            <span className="profile__stat-label">Transactions</span>
+            <span className="profile__stat-icon">📈</span>
+            <span className="profile__stat-label">Month Income</span>
+            <span className="profile__stat-val mono income">
+              +₹{stats?.income.toFixed(2) ?? '0.00'}
+            </span>
           </motion.div>
         </motion.div>
       )}
 
-      {/* ── Balance Overview ── */}
-      {!loading && (
+      {/* ── Balance Overview for Month ── */}
+      {stats && !loading && (
         <div className="profile__section card">
-          <h2 className="profile__section-title">💰 Balance Overview</h2>
-          <div className="profile__balance-display">
-            <span className="profile__balance-amount mono">
-              ₹{(stats?.balance ?? 0).toFixed(2)}
-            </span>
-            <span className="profile__balance-sub">
-              Current remaining balance
-            </span>
-          </div>
-          <div className="profile__monthly-grid" style={{ paddingTop: 12, borderTop: '1px solid var(--card-border)' }}>
-            <div className="profile__monthly-item">
-              <span className="profile__monthly-item-label">Base Balance</span>
-              <span className="profile__monthly-item-val mono">
-                ₹{(stats?.starting_balance ?? 0).toFixed(2)}
-              </span>
+          <h2 className="profile__section-title">⚖️ Balance Overview ({stats.label})</h2>
+          <div className="profile__balance-overview">
+            <div className="profile__balance-row">
+              <span>Start of Month Balance:</span>
+              <span className="mono">₹{stats.start_balance.toFixed(2)}</span>
             </div>
-            <div className="profile__monthly-item">
-              <span className="profile__monthly-item-label">+ Income</span>
-              <span className="profile__monthly-item-val mono" style={{ color: 'var(--accent)' }}>
-                +₹{(stats?.total_income ?? 0).toFixed(2)}
-              </span>
+            <div className="profile__balance-row">
+              <span>Month Income (+):</span>
+              <span className="mono income">+₹{stats.income.toFixed(2)}</span>
             </div>
-            <div className="profile__monthly-item">
-              <span className="profile__monthly-item-label">− Spent</span>
-              <span className="profile__monthly-item-val mono" style={{ color: 'var(--danger)' }}>
-                −₹{(stats?.total_spent ?? 0).toFixed(2)}
-              </span>
+            <div className="profile__balance-row">
+              <span>Month Expenses (−):</span>
+              <span className="mono spent">−₹{stats.spent.toFixed(2)}</span>
+            </div>
+            <div className="profile__balance-row total">
+              <span>End of Month Balance:</span>
+              <span className="mono">₹{stats.end_balance.toFixed(2)}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Monthly Balance Analytics ── */}
-      {(stats?.monthly_analytics?.length ?? 0) > 0 && (
+      {/* ── Category Breakdown for Month ── */}
+      {stats && !loading && stats.category_breakdown.length > 0 && (
         <div className="profile__section card">
-          <h2 className="profile__section-title">📅 Monthly Analytics</h2>
-          <div className="profile__monthly-list">
-            {stats!.monthly_analytics.map(m => (
-              <div key={`${m.year}-${m.month}`} className="profile__monthly-card">
-                <div className="profile__monthly-header">
-                  <span className="profile__monthly-label">{m.label}</span>
-                  <span
-                    className={`profile__monthly-end mono ${m.end_balance < 0 ? 'profile__negative' : 'profile__positive'}`}
-                  >
-                    End: ₹{m.end_balance.toFixed(2)}
+          <h2 className="profile__section-title">📊 Category Breakdown ({stats.label})</h2>
+          <div className="profile__category-list">
+            {stats.category_breakdown.map(cat => (
+              <div key={cat.category} className="profile__category-row">
+                <span className="profile__category-icon">{cat.icon}</span>
+                <div className="profile__category-info">
+                  <div className="profile__category-top">
+                    <span className="profile__category-name">{cat.label}</span>
+                    <span className="profile__category-amount mono" style={{ color: cat.color }}>
+                      ₹{cat.amount.toFixed(2)} ({cat.percentage}%)
+                    </span>
+                  </div>
+                  <div className="profile__category-bar-wrap">
+                    <div
+                      className="profile__category-bar"
+                      style={{ width: `${cat.percentage}%`, background: cat.color }}
+                    />
+                  </div>
+                  <span className="profile__category-count">
+                    {cat.count} transaction{cat.count !== 1 ? 's' : ''}
                   </span>
-                </div>
-                <div className="profile__monthly-grid">
-                  <div className="profile__monthly-item">
-                    <span className="profile__monthly-item-label">Start Bal</span>
-                    <span className="profile__monthly-item-val mono">
-                      ₹{m.start_balance.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="profile__monthly-item">
-                    <span className="profile__monthly-item-label">Income</span>
-                    <span className="profile__monthly-item-val mono" style={{ color: 'var(--accent)' }}>
-                      +₹{m.income.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="profile__monthly-item">
-                    <span className="profile__monthly-item-label">Spent</span>
-                    <span className="profile__monthly-item-val mono" style={{ color: 'var(--danger)' }}>
-                      −₹{m.expense.toFixed(2)}
-                    </span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -194,54 +187,26 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── Category Breakdown ── */}
-      {categoryTotals.length > 0 && (
-        <div className="profile__section card">
-          <h2 className="profile__section-title">📊 Category Breakdown</h2>
-          <div className="profile__category-list">
-            {categoryTotals.map(({ cat, total, count }) => {
-              const maxTotal = categoryTotals[0]?.total || 1;
-              const pct = (total / maxTotal) * 100;
-              return (
-                <div key={cat.id} className="profile__category-row">
-                  <span className="profile__category-icon">{cat.icon}</span>
-                  <div className="profile__category-info">
-                    <div className="profile__category-top">
-                      <span className="profile__category-name">{cat.label}</span>
-                      <span className="profile__category-amount mono" style={{ color: cat.color }}>
-                        ₹{total.toFixed(0)}
-                      </span>
-                    </div>
-                    <div className="profile__category-bar-wrap">
-                      <div
-                        className="profile__category-bar"
-                        style={{ width: `${pct}%`, background: cat.color }}
-                      />
-                    </div>
-                    <span className="profile__category-count">
-                      {count} transaction{count !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {stats && !loading && stats.category_breakdown.length === 0 && (
+        <div className="profile__section card empty-state">
+          <p className="text-muted">No expenses recorded for {stats.label}.</p>
         </div>
       )}
 
-      {/* ── Danger Zone ── */}
-      <div className="profile__section card profile__section--danger">
-        <h2 className="profile__section-title profile__section-title--danger">⚠️ Danger Zone</h2>
-        <p className="profile__danger-text">
-          Logging out removes your session from this device. Your data stays safe in the cloud.
-        </p>
+      {/* ── Low-Emphasis Understated Logout Button (Issue 3) ── */}
+      <div className="profile__logout-footer">
         <motion.button
           id="logout-btn"
-          className="profile__logout-btn"
+          className="profile__logout-link"
           onClick={handleLogout}
           whileTap={tapScale}
         >
-          Log Out
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span>Log out @{auth.username}</span>
         </motion.button>
       </div>
     </motion.div>

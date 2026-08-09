@@ -6,6 +6,8 @@ import ExpenseRow from '../components/ExpenseRow';
 import type { Expense } from '../components/ExpenseRow';
 import AddExpenseSheet from '../components/AddExpenseSheet';
 import EmptyState from '../components/EmptyState';
+import MonthSelector from '../components/MonthSelector';
+import type { AggregateData } from './Profile';
 import './History.css';
 
 interface HistoryResponse {
@@ -19,39 +21,54 @@ interface HistoryResponse {
 }
 
 export default function History() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [page, setPage]         = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading]   = useState(true);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editExp, setEditExp]   = useState<Expense | null>(null);
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [showAllMode, setShowAllMode] = useState(false);
 
-  const fetchHistory = useCallback(async (p: number) => {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editExp, setEditExp] = useState<Expense | null>(null);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiGet<HistoryResponse>(`/api/expenses?page=${p}&limit=15`);
-      setExpenses(res.expenses);
-      setTotalPages(res.pagination.pages);
-      setPage(res.pagination.page);
-    } catch { /* silently fail */ }
-    finally { setLoading(false); }
-  }, []);
+      if (showAllMode) {
+        const res = await apiGet<HistoryResponse>(`/api/expenses?page=${page}&limit=15`);
+        setExpenses(res.expenses);
+        setTotalPages(res.pagination.pages);
+      } else {
+        const res = await apiGet<AggregateData>(`/api/aggregate?year=${selectedYear}&month=${selectedMonth}`);
+        setExpenses(res.transactions as Expense[]);
+        setTotalPages(1);
+      }
+    } catch {
+      /* silently handle */
+    } finally {
+      setLoading(false);
+    }
+  }, [showAllMode, selectedYear, selectedMonth, page]);
 
   useEffect(() => {
-    fetchHistory(page);
-  }, [page, fetchHistory]);
+    loadData();
+  }, [loadData]);
 
   const handleDelete = async (id: string) => {
     try {
       await apiDelete(`/api/expenses/${id}`);
-      fetchHistory(page);
-    } catch { /* silently fail */ }
+      loadData();
+    } catch {
+      /* handle error */
+    }
   };
 
   return (
     <>
       <motion.div
-        className="history-page"
+        className="history-page page-shell__content"
         variants={pageTransition}
         initial="initial"
         animate="animate"
@@ -59,7 +76,35 @@ export default function History() {
       >
         <div className="history-page__header">
           <h1 className="history-page__title">Transaction History</h1>
+
+          {/* Mode Toggle */}
+          <div className="history-page__toggle-wrap">
+            <button
+              className={`history-page__toggle-btn ${!showAllMode ? 'active' : ''}`}
+              onClick={() => { setShowAllMode(false); setPage(1); }}
+            >
+              📅 Month View
+            </button>
+            <button
+              className={`history-page__toggle-btn ${showAllMode ? 'active' : ''}`}
+              onClick={() => { setShowAllMode(true); setPage(1); }}
+            >
+              🌐 Show All
+            </button>
+          </div>
         </div>
+
+        {/* Reusable Month Selector (only in Month View) */}
+        {!showAllMode && (
+          <MonthSelector
+            year={selectedYear}
+            month={selectedMonth}
+            onChange={(y, m) => {
+              setSelectedYear(y);
+              setSelectedMonth(m);
+            }}
+          />
+        )}
 
         {loading ? (
           <div className="history-page__skeletons">
@@ -68,7 +113,14 @@ export default function History() {
             ))}
           </div>
         ) : expenses.length === 0 ? (
-          <EmptyState title="No transactions yet" message="When you log expenses, they will appear here." />
+          <EmptyState
+            title={showAllMode ? 'No transactions yet' : 'No transactions this month'}
+            message={
+              showAllMode
+                ? 'When you log expenses, they will appear here.'
+                : 'Select another month or add a new transaction.'
+            }
+          />
         ) : (
           <div className="history-page__content">
             <motion.div
@@ -91,8 +143,8 @@ export default function History() {
               ))}
             </motion.div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {/* Pagination Controls (Show All mode) */}
+            {showAllMode && totalPages > 1 && (
               <div className="history-page__pagination">
                 <motion.button
                   className="history-page__pag-btn"
@@ -100,10 +152,10 @@ export default function History() {
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   whileTap={tapScale}
                 >
-                  ◀ Prev
+                  Previous
                 </motion.button>
-                <span className="history-page__pag-info mono">
-                  {page} / {totalPages}
+                <span className="history-page__pag-info">
+                  Page {page} of {totalPages}
                 </span>
                 <motion.button
                   className="history-page__pag-btn"
@@ -111,20 +163,22 @@ export default function History() {
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   whileTap={tapScale}
                 >
-                  Next ▶
+                  Next
                 </motion.button>
               </div>
             )}
           </div>
         )}
-
-        <div style={{ height: 80 }} />
       </motion.div>
 
+      {/* Edit sheet */}
       <AddExpenseSheet
         open={sheetOpen}
-        onClose={() => { setSheetOpen(false); setEditExp(null); }}
-        onSaved={() => fetchHistory(page)}
+        onClose={() => {
+          setSheetOpen(false);
+          setEditExp(null);
+        }}
+        onSaved={loadData}
         editExpense={editExp}
       />
     </>

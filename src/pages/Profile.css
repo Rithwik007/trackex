@@ -288,21 +288,62 @@
   color: var(--text-muted);
 }
 
-/* Danger zone */
-.profile__danger-text {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.5;
+/* Balance overview */
+.profile__balance-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.profile__logout-btn {
-  padding: 14px;
-  border: 1.5px solid var(--danger);
-  background: var(--danger-glow);
-  color: var(--danger);
-  border-radius: var(--radius-md);
-  font-size: 14px;
+.profile__balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.profile__balance-row.total {
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
   font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.profile__balance-row .income {
+  color: var(--accent);
+}
+
+.profile__balance-row .spent {
+  color: #ef4444;
+}
+
+/* Low-emphasis understated logout footer (Issue 3) */
+.profile__logout-footer {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 24px;
+}
+
+.profile__logout-link {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
-  text-align: center;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  opacity: 0.75;
+}
+
+.profile__logout-link:hover {
+  opacity: 1;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
 }

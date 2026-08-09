@@ -10,6 +10,11 @@
 
 .history-page__header {
   padding: 8px 4px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .history-page__title {
@@ -17,6 +22,31 @@
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
+}
+
+.history-page__toggle-wrap {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.history-page__toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-page__toggle-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .history-page__skeletons {
