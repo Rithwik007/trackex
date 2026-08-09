@@ -4,6 +4,7 @@ import { sheetVariants, tapScale } from '../lib/animations';
 import CategoryPicker from './CategoryPicker';
 import type { CategoryId } from '../lib/categories';
 import { getAuth } from '../lib/auth';
+import { apiPost, apiPatch } from '../lib/api';
 import './AddExpenseSheet.css';
 
 interface Props {
@@ -55,22 +56,24 @@ export default function AddExpenseSheet({ open, onClose, onSaved, editExpense }:
 
     setSaving(true); setError('');
     try {
-      const url    = editExpense ? `/api/expenses/${editExpense._id}` : '/api/expenses';
-      const method = editExpense ? 'PATCH' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': auth.user_id,
-          'x-token':   auth.token,
-        },
-        body: JSON.stringify({ type, amount: amt, category, note: note.trim(), date }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? 'Save failed');
+      if (editExpense) {
+        await apiPatch(`/api/expenses/${editExpense._id}`, {
+          type,
+          amount: amt,
+          category,
+          note: note.trim(),
+          date,
+        });
+      } else {
+        await apiPost('/api/expenses', {
+          type,
+          amount: amt,
+          category,
+          note: note.trim(),
+          date,
+        });
       }
+
       reset(); onSaved(); onClose();
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong');
