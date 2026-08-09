@@ -156,7 +156,7 @@ export default function Dashboard() {
       {/* Floating Add Expense FAB */}
       <motion.button
         id="add-expense-fab"
-        className="fab"
+        className="dashboard__fab fab"
         onClick={() => {
           setEditExp(null);
           setSheetOpen(true);
