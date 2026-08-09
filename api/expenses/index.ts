@@ -24,7 +24,11 @@ export interface MonthlyAnalytics {
   end_balance: number;
 }
 
+import { setCorsHeaders } from '../lib/cors.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (setCorsHeaders(req, res)) return;
+
   const auth = await authMiddleware(req, res);
   if (!auth) return;
 
@@ -133,7 +137,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─── POST — create transaction (expense | income) ───
   if (req.method === 'POST') {
-    const { type = 'expense', amount, category, note, date } = req.body as {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
+    const { type = 'expense', amount, category, note, date } = body as {
       type?: 'expense' | 'income';
       amount?: number;
       category?: string;

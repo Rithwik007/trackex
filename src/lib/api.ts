@@ -13,12 +13,26 @@ function headers(auth?: { user_id: string; token: string }) {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
   const contentType = res.headers.get('content-type') || '';
+
   if (!contentType.includes('application/json')) {
-    throw new Error('Backend service is waking up (Render cold start) or API URL is unreachable. Please click Refresh in a few seconds.');
+    throw new Error(`Server returned non-JSON response (Status ${res.status}). Service may be waking up.`);
   }
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Request failed');
+
+  if (!text || text.trim().length === 0) {
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+    return {} as T;
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Failed to parse response JSON (Status ${res.status})`);
+  }
+
+  if (!res.ok) throw new Error(data.error ?? `Request failed with status ${res.status}`);
   return data as T;
 }
 

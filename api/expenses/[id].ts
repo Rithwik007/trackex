@@ -7,7 +7,11 @@ import { ALL_CATEGORIES } from '../../src/lib/categories.js';
 
 const VALID_CATEGORIES = ALL_CATEGORIES.map(c => c.id);
 
+import { setCorsHeaders } from '../lib/cors.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (setCorsHeaders(req, res)) return;
+
   const auth = await authMiddleware(req, res);
   if (!auth) return;
 
@@ -29,11 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ─── PATCH — edit transaction ───
   if (req.method === 'PATCH') {
-    const { type, amount, category, note, date } = req.body as {
-      type?: 'expense' | 'income';
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
+    const { amount, category, note, type, date } = body as {
       amount?: number;
       category?: string;
       note?: string;
+      type?: 'expense' | 'income';
       date?: string;
     };
 
