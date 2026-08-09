@@ -193,7 +193,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ── Low-Emphasis Understated Logout Button (Issue 3) ── */}
+      {/* ── Low-Emphasis Understated Logout Link (Issue 3) ── */}
       <div className="profile__logout-footer">
         <motion.button
           id="logout-btn"
