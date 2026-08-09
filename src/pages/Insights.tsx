@@ -47,24 +47,30 @@ export default function Insights() {
   };
 
   // Fetch chat history from MongoDB on mount to sync cloud state.
-  // Only overwrite local state if cloud has MORE messages (e.g. from another device).
-  // Never downgrade — local state may contain messages not yet persisted to MongoDB.
+  // - Cloud has 0 messages → deliberate clear from another device → wipe local too.
+  // - Cloud has >= local messages → newer data from another device → apply cloud.
+  // - Cloud has < local messages → local has un-synced messages → keep local.
   useEffect(() => {
     apiGet<{ messages: Message[] }>('/api/chat')
       .then(res => {
-        if (res.messages && res.messages.length > 0) {
-          const synced = [WELCOME_MESSAGE, ...res.messages];
-          // Only apply cloud data if it has more messages than local cache
-          setMessages(prev => {
-            const localCount = prev.filter(m => m.id !== 'welcome').length;
-            const cloudCount = res.messages.length;
-            if (cloudCount >= localCount) {
-              localStorage.setItem('trackex_chat_history', JSON.stringify(synced));
-              return synced;
-            }
-            return prev;
-          });
+        const cloudMsgs = res.messages ?? [];
+
+        if (cloudMsgs.length === 0) {
+          // Cloud was cleared (e.g. from mobile) → reset local too
+          setMessages([WELCOME_MESSAGE]);
+          localStorage.removeItem('trackex_chat_history');
+          return;
         }
+
+        const synced = [WELCOME_MESSAGE, ...cloudMsgs];
+        setMessages(prev => {
+          const localCount = prev.filter(m => m.id !== 'welcome').length;
+          if (cloudMsgs.length >= localCount) {
+            localStorage.setItem('trackex_chat_history', JSON.stringify(synced));
+            return synced;
+          }
+          return prev;
+        });
       })
       .catch(err => console.error('[Chat History Fetch Error]', err))
       .finally(() => setFetchingHistory(false));
