@@ -1,1 +1,2 @@
-# empty vercelignore to allow Vercel to build api/ serverless routes
+# Exclude api/ from Vercel deployment so Vercel builds only static SPA and stays within Hobby 12 serverless function limit
+api/
