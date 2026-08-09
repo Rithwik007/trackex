@@ -46,14 +46,24 @@ export default function Insights() {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Fetch chat history from MongoDB on mount to sync cloud state
+  // Fetch chat history from MongoDB on mount to sync cloud state.
+  // Only overwrite local state if cloud has MORE messages (e.g. from another device).
+  // Never downgrade — local state may contain messages not yet persisted to MongoDB.
   useEffect(() => {
     apiGet<{ messages: Message[] }>('/api/chat')
       .then(res => {
         if (res.messages && res.messages.length > 0) {
           const synced = [WELCOME_MESSAGE, ...res.messages];
-          setMessages(synced);
-          localStorage.setItem('trackex_chat_history', JSON.stringify(synced));
+          // Only apply cloud data if it has more messages than local cache
+          setMessages(prev => {
+            const localCount = prev.filter(m => m.id !== 'welcome').length;
+            const cloudCount = res.messages.length;
+            if (cloudCount >= localCount) {
+              localStorage.setItem('trackex_chat_history', JSON.stringify(synced));
+              return synced;
+            }
+            return prev;
+          });
         }
       })
       .catch(err => console.error('[Chat History Fetch Error]', err))
