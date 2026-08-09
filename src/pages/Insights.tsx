@@ -25,10 +25,19 @@ const WELCOME_MESSAGE: Message = {
 };
 
 export default function Insights() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const cached = localStorage.getItem('trackex_chat_history');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return [WELCOME_MESSAGE];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchingHistory, setFetchingHistory] = useState(true);
+  const [fetchingHistory, setFetchingHistory] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,14 +46,14 @@ export default function Insights() {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Fetch chat history from MongoDB on mount
+  // Fetch chat history from MongoDB on mount to sync cloud state
   useEffect(() => {
     apiGet<{ messages: Message[] }>('/api/chat')
       .then(res => {
         if (res.messages && res.messages.length > 0) {
-          setMessages([WELCOME_MESSAGE, ...res.messages]);
-        } else {
-          setMessages([WELCOME_MESSAGE]);
+          const synced = [WELCOME_MESSAGE, ...res.messages];
+          setMessages(synced);
+          localStorage.setItem('trackex_chat_history', JSON.stringify(synced));
         }
       })
       .catch(err => console.error('[Chat History Fetch Error]', err))
@@ -52,6 +61,9 @@ export default function Insights() {
   }, []);
 
   useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('trackex_chat_history', JSON.stringify(messages));
+    }
     scrollToBottom();
   }, [messages, loading]);
 
@@ -65,6 +77,7 @@ export default function Insights() {
     try {
       await apiDelete('/api/chat');
       setMessages([WELCOME_MESSAGE]);
+      localStorage.removeItem('trackex_chat_history');
       setConfirmingClear(false);
     } catch {
       alert('Failed to clear chat history from server.');

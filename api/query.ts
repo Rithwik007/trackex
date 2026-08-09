@@ -216,8 +216,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
   } catch (err) {
     if (err instanceof AllKeysExhaustedError) {
+      const errAnswer = "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.";
+      await ChatMessage.create({
+        user_id: userIdObj,
+        role: 'assistant',
+        text: errAnswer,
+        timestamp: new Date(),
+      }).catch(() => {});
       return res.status(200).json({
-        answer: "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.",
+        answer: errAnswer,
         understood: false,
       });
     }
