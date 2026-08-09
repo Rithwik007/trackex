@@ -1,7 +1,10 @@
 .admin-page {
-  padding: 20px 16px var(--safe-bottom);
+  flex: 1;
+  padding: max(16px, env(safe-area-inset-top, 16px)) 16px calc(var(--nav-h) + 40px + var(--safe-bottom));
   max-width: 900px;
   margin: 0 auto;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .admin-header {
@@ -49,8 +52,8 @@
 
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
   margin-bottom: 20px;
 }
 
