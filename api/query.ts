@@ -36,8 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'question required' });
   }
 
-  // Durable Request Tracking: Log hit to /api/query
   const userIdObj = new mongoose.Types.ObjectId(auth.user_id);
+
+  // Durable Request Tracking: Log hit to /api/query
   await QueryLog.create({
     user_id: userIdObj,
     username: auth.username,
@@ -53,13 +54,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     timestamp: new Date(),
   }).catch(err => console.error('[ChatMessage user write error]:', err));
 
+  // Helper to persist assistant response and send JSON HTTP response
+  const sendAndPersist = async (
+    status: number,
+    answerText: string,
+    extra: { value?: number; count?: number; understood?: boolean } = {}
+  ) => {
+    await ChatMessage.create({
+      user_id: userIdObj,
+      role: 'assistant',
+      text: answerText,
+      timestamp: new Date(),
+    }).catch(err => console.error('[ChatMessage bot write error]:', err));
+
+    return res.status(status).json({
+      answer: answerText,
+      value: extra.value ?? 0,
+      count: extra.count ?? 0,
+      understood: extra.understood ?? true,
+    });
+  };
+
   // Durable Rate Limiting: Max 20 queries per 60s per user read from QueryLog
   const rate = await checkRateLimitDurable(auth.user_id);
   if (!rate.allowed) {
-    return res.status(429).json({
-      answer: "⏳ Rate limit exceeded. You can send up to 20 questions per minute. Please wait a moment before trying again.",
-      understood: false,
-    });
+    return sendAndPersist(
+      429,
+      "⏳ Rate limit exceeded. You can send up to 20 questions per minute. Please wait a moment before trying again.",
+      { understood: false }
+    );
   }
 
   let parsed;
@@ -67,51 +90,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     parsed = await parseNLQuery(question.trim(), chat_history ?? []);
   } catch (err) {
     if (err instanceof AllKeysExhaustedError) {
-      return res.status(200).json({
-        answer: "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.",
-        understood: false,
-      });
+      return sendAndPersist(
+        200,
+        "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.",
+        { understood: false }
+      );
     }
     throw err;
   }
 
   if (!parsed) {
-    return res.status(200).json({
-      answer: "I couldn't understand that question. Try asking like: 'how much did I spend on food this week?' or 'what is my total income this month?'",
-      understood: false,
-    });
+    return sendAndPersist(
+      200,
+      "I couldn't understand that question. Try asking like: 'how much did I spend on food this week?' or 'what is my total income this month?'",
+      { understood: false }
+    );
   }
 
   // 1. Security Refusal (Prompt Injection / Write Actions)
   if (parsed.security_refusal) {
-    return res.status(200).json({
-      answer: `I am a read-only financial query assistant scoped strictly to your account (@${auth.username}). I cannot modify transactions or reveal other system data.`,
-      value: 0,
-      count: 0,
-      understood: true,
-    });
+    return sendAndPersist(
+      200,
+      `I am a read-only financial query assistant scoped strictly to your account (@${auth.username}). I cannot modify transactions or reveal other system data.`
+    );
   }
 
   // 2. Off-Topic / General Knowledge Query -> Return direct answer from Groq
-  // Only short-circuit if it's not a request for financial advice/suggestions
   const isAdviceQuery = /suggest|advice|saving|save|budget|optimize|analytical|insight|what should i|help me|history|summary/i.test(question);
   if (parsed.off_topic && parsed.direct_answer && !isAdviceQuery) {
-    return res.status(200).json({
-      answer: parsed.direct_answer,
-      value: 0,
-      count: 0,
-      understood: true,
-    });
+    return sendAndPersist(200, parsed.direct_answer);
   }
 
   // 3. Invalid / Non-Existent Category
   if (parsed.invalid_category) {
-    return res.status(200).json({
-      answer: `Category '${parsed.invalid_category}' is not tracked in your account. Available categories are: ${VALID_CATEGORIES.join(', ')}.`,
-      value: 0,
-      count: 0,
-      understood: true,
-    });
+    return sendAndPersist(
+      200,
+      `Category '${parsed.invalid_category}' is not tracked in your account. Available categories are: ${VALID_CATEGORIES.join(', ')}.`
+    );
   }
 
   await connectDB();
@@ -152,7 +167,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       match.date = dateFilter;
     }
 
-    // Note/description text search (case-insensitive regex)
     if (noteSearch && noteSearch.trim().length > 0) {
       const words = noteSearch.trim()
         .toLowerCase()
@@ -183,7 +197,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     parsed.note_search
   );
 
-  // Fetch comparison transactions if needed, to give LLM full context
   let allMatchingTxs = [...txs];
 
   if (parsed.category_compare && parsed.category !== 'all') {
@@ -205,7 +218,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     allMatchingTxs.push(...compTxs);
   }
 
-  // Use the LLM's brain to formulate the final answer using the exact matching transactions
   let answer: string;
   try {
     answer = await answerQuestionWithTransactions(
@@ -216,31 +228,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
   } catch (err) {
     if (err instanceof AllKeysExhaustedError) {
-      const errAnswer = "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.";
-      await ChatMessage.create({
-        user_id: userIdObj,
-        role: 'assistant',
-        text: errAnswer,
-        timestamp: new Date(),
-      }).catch(() => {});
-      return res.status(200).json({
-        answer: errAnswer,
-        understood: false,
-      });
+      return sendAndPersist(
+        200,
+        "⚠️ API limit reached — all API keys have been exhausted for today. Please try again tomorrow or add a new API key.",
+        { understood: false }
+      );
     }
     throw err;
   }
 
-  // Persist assistant response in MongoDB ChatMessage collection
-  await ChatMessage.create({
-    user_id: userIdObj,
-    role: 'assistant',
-    text: answer,
-    timestamp: new Date(),
-  }).catch(err => console.error('[ChatMessage bot write error]:', err));
-
-  return res.status(200).json({
-    answer,
+  return sendAndPersist(200, answer, {
     value: allMatchingTxs.reduce((sum, t) => sum + t.amount, 0),
     count: allMatchingTxs.length,
     understood: true,
