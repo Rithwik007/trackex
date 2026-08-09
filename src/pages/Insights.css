@@ -113,7 +113,7 @@
 
 .insights__input-area {
   flex-shrink: 0;
-  padding: 16px 20px calc(16px + var(--safe-bottom));
+  padding: 12px 20px calc(var(--nav-h) + 16px + var(--safe-bottom));
   border-top: 1px solid var(--card-border);
   background: var(--bg);
 }
